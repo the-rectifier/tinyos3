@@ -17,3 +17,15 @@ typedef struct process_thread_control_block{
 
 	rlnode ptcb_list_node;
 }PTCB;
+
+PTCB * init_PTCB(Task, int, void*);
+
+Tid_t sys_CreateThread(Task, int, void*);
+
+Tid_t sys_ThreadSelf(void);
+
+int sys_ThreadJoin(Tid_t, int*);
+
+int sys_ThreadDetach(Tid_t);
+
+void sys_ThreadExit(int);
