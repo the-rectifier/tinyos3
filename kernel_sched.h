@@ -101,7 +101,7 @@ enum SCHED_CAUSE {
 typedef struct thread_control_block {
 	PCB* owner_pcb; /**< @brief This is null for a free TCB */
 
-  PTCB* ptcb;
+	PTCB* ptcb;
 
 	cpu_context_t context; /**< @brief The thread context */
 
@@ -190,15 +190,15 @@ extern CCB cctx[MAX_CORES];
 
 	This call creates a new thread, initializing and returning its TCB.
 	The thread will belong to process @c pcb and execute @c func.
-    Note that, the new thread is returned in the @c INIT state.
-    The caller must use @c wakeup() to start it.
+	Note that, the new thread is returned in the @c INIT state.
+	The caller must use @c wakeup() to start it.
 
-    @param pcb  The process control block of the owning process. The
-                scheduler simply stores this value in the new TCB, and
-                otherwise ignores it
+	@param pcb  The process control block of the owning process. The
+				scheduler simply stores this value in the new TCB, and
+				otherwise ignores it
 
-    @param func The function to execute in the new thread.
-    @returns  A pointer to the TCB of the new thread, in the @c INIT state.
+	@param func The function to execute in the new thread.
+	@returns  A pointer to the TCB of the new thread, in the @c INIT state.
 */
 TCB* spawn_thread(PCB* pcb, void (*func)());
 
