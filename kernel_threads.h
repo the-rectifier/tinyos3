@@ -17,5 +17,3 @@ typedef struct process_thread_control_block{
 
 	rlnode ptcb_list_node;
 }PTCB;
-
-PTCB * init_PTCB(Task, int, void*);

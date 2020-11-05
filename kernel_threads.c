@@ -43,23 +43,3 @@ void sys_ThreadExit(int exitval)
 
 }
 
-PTCB * init_PTCB(Task task, int argl, void* args){
-  PTCB * ptcb = (PTCB *)malloc(sizeof(PTCB));
-
-  ptcb->task = task;
-  ptcb->argl = argl;
-
-  ptcb->ref_count = 0;
-  ptcb->exited = 0;
-  ptcb->detached = 0;
-  ptcb->exitval = -1;
-
-  if(args != NULL){
-    ptcb->args = malloc(argl);
-    memcpy(ptcb->args, args, argl);
-  }else{
-    ptcb->args = NULL; 
-  }
-  
-  return ptcb;
-}

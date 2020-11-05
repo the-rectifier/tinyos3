@@ -54,9 +54,9 @@ typedef struct process_control_block {
 
   CondVar child_exit;     /**< @brief Condition variable for @c WaitChild. 
 
-							 This condition variable is  broadcast each time a child
-							 process terminates. It is used in the implementation of
-							 @c WaitChild() */
+                             This condition variable is  broadcast each time a child
+                             process terminates. It is used in the implementation of
+                             @c WaitChild() */
 
   FCB* FIDT[MAX_FILEID];  /**< @brief The fileid table of the process */
 

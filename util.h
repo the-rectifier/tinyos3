@@ -114,7 +114,7 @@ static inline void * xmalloc (size_t size)
 {
   void *value = malloc (size);
   if (value == 0)
-	FATAL("virtual memory exhausted");
+    FATAL("virtual memory exhausted");
   return value;
 }
 
@@ -300,26 +300,26 @@ typedef struct resource_list_node * rlnode_ptr;
 typedef struct resource_list_node {
   
   /** @brief The list node's key.
-	 
-	 The key (data element) of a list node is 
-	 stored in a union of several pointer and integer types.
-	 This allows for easy access, without the need for casting. 
-	 For example,
-	 \code
-	 TCB* tcb = mynode->tcb;
-	 \endcode
-	 */
+     
+     The key (data element) of a list node is 
+     stored in a union of several pointer and integer types.
+     This allows for easy access, without the need for casting. 
+     For example,
+     \code
+     TCB* tcb = mynode->tcb;
+     \endcode
+     */
   union {
-	PCB* pcb; 
-	TCB* tcb;
-	CCB* ccb;
-	DCB* dcb;
-	FCB* fcb;
-	PTCB* ptcb;
-	void* obj;
-	rlnode_ptr node;
-	intptr_t num;
-	uintptr_t unum;
+    PCB* pcb; 
+    TCB* tcb;
+    CCB* ccb;
+    DCB* dcb;
+    FCB* fcb;
+    PTCB* ptcb;
+    void* obj;
+    rlnode_ptr node;
+    intptr_t num;
+    uintptr_t unum;
   };
 
   /* list pointers */
@@ -592,7 +592,7 @@ static inline void rlist_select(rlnode* Lsrc, rlnode* Ldest, int (*pred)(rlnode*
 	@param argc the length of the string array
 	@param argv the string array
 	@returns the total number of bytes in all the strings, including the
-		terminating zeros.
+	    terminating zeros.
 */
 static inline size_t argvlen(size_t argc, const char** argv)
 {
