@@ -1,8 +1,7 @@
-
 #include "tinyos.h"
 #include "kernel_sched.h"
 #include "kernel_proc.h"
-
+#include "kernel_cc.h"
 /** 
   @brief Create a new thread in the current process.
   */
@@ -10,6 +9,7 @@ Tid_t sys_CreateThread(Task task, int argl, void* args)
 {
 	//Use some kind of mutex?
 	//Check if the current process running is the owner of the current thread
+	
 	assert(CURPROC == CURTHREAD->owner_pcb);
 
 	CURPROC->thread_count++;
@@ -25,6 +25,7 @@ Tid_t sys_CreateThread(Task task, int argl, void* args)
 		tcb->ptcb = ptcb;
 		wakeup(ptcb->tcb);
 	}
+	
 
 	return (Tid_t ) ptcb;
 }
@@ -62,7 +63,7 @@ void sys_ThreadExit(int exitval)
 }
 
 PTCB * init_PTCB(Task task, int argl, void* args){
-	PTCB * ptcb = (PTCB *)malloc(sizeof(PTCB));
+	PTCB * ptcb = (PTCB *)xmalloc(sizeof(PTCB));
 
 	ptcb->task = task;
 	ptcb->argl = argl;
@@ -77,4 +78,6 @@ PTCB * init_PTCB(Task task, int argl, void* args){
 	ptcb->exit_cv = COND_INIT;
 
 	ptcb->ref_count = 0;
+	
+	return ptcb;
 }

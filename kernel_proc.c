@@ -111,7 +111,9 @@ to execute the main thread of a process.
 void start_main_thread(){
 	int exitval;
 
-	PTCB* ptcb = (PTCB*)CURTHREAD->ptcb;
+	TCB* tcb = (TCB*)ThreadSelf();
+	PTCB* ptcb = tcb->ptcb;
+
 	assert(ptcb != NULL);
 
 	Task call =  ptcb->task;
@@ -126,9 +128,15 @@ void start_main_thread(){
 void start_thread(){
 	int exitval;
 
-	PTCB* ptcb = (PTCB*)CURTHREAD->ptcb;
+	TCB* tcb = (TCB*)ThreadSelf();
+	assert(tcb != NULL);
+	
+	PTCB* ptcb = tcb->ptcb;
 	assert(ptcb != NULL);
+
 	Task call = ptcb->task;
+	assert(call != NULL);
+
 	int argl = ptcb->argl;
 	void * args = ptcb->args;
 

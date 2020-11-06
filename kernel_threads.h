@@ -20,12 +20,12 @@ typedef struct process_thread_control_block{
 
 PTCB * init_PTCB(Task, int, void*);
 
-Tid_t sys_CreateThread(Task, int, void*);
+// Tid_t sys_CreateThread(Task, int, void*);
 
-Tid_t sys_ThreadSelf(void);
+// Tid_t sys_ThreadSelf(void);
 
-int sys_ThreadJoin(Tid_t, int*);
+// int sys_ThreadJoin(Tid_t, int*);
 
-int sys_ThreadDetach(Tid_t);
+// int sys_ThreadDetach(Tid_t);
 
-void sys_ThreadExit(int);
+// void sys_ThreadExit(int);

@@ -984,6 +984,20 @@ BOOT_TEST(test_create_join_thread,
 	return 0;
 }
 
+BOOT_TEST(test_just_create, "Test that a process thread can be created. Also, that the argument of the thread is passed correctly."){
+	int flag = 0;
+
+	int task(int argl, void* args){
+		ASSERT(args == &flag);
+		*(int*)args = 1;
+		return 2;
+	}
+
+	Tid_t t = CreateThread(task, sizeof(flag), &flag);
+	ASSERT(t!=NOTHREAD);
+	return 0;
+}
+
 BOOT_TEST(test_detach_self,
 	"Test that a thread can detach itself")
 {
@@ -1140,6 +1154,7 @@ TEST_SUITE(thread_tests,
 	&test_exit_many_threads,
 	&test_nonexit_cleanup,
 	&test_cyclic_joins,
+	&test_just_create,
 	NULL
 };
 
