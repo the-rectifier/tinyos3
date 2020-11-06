@@ -2,14 +2,31 @@
 #include "tinyos.h"
 #include "kernel_sched.h"
 #include "kernel_proc.h"
-// #include "kernel_threads.h"
 
 /** 
   @brief Create a new thread in the current process.
   */
 Tid_t sys_CreateThread(Task task, int argl, void* args)
 {
-	return NOTHREAD;
+	//Use some kind of mutex?
+	//Check if the current process running is the owner of the current thread
+	assert(CURPROC == CURTHREAD->owner_pcb);
+
+	CURPROC->thread_count++;
+	PTCB * ptcb = init_PTCB(task, argl, args);
+
+	rlnode * ptcb_node = rlnode_init(&ptcb->ptcb_list_node, ptcb);
+	rlist_push_back(&CURPROC->ptcb_list, ptcb_node);
+
+	// Just like sys_exec()
+	if(task != NULL){
+		TCB * tcb = spawn_thread(CURPROC, start_thread);
+		ptcb->tcb = tcb;
+		tcb->ptcb = ptcb;
+		wakeup(ptcb->tcb);
+	}
+
+	return (Tid_t ) ptcb;
 }
 
 /**

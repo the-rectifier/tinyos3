@@ -133,6 +133,7 @@ void start_thread(){
 	void * args = ptcb->args;
 
 	exitval = call(argl,args);
+	
 	ThreadExit(exitval);
 }
 
@@ -195,11 +196,11 @@ Pid_t sys_Exec(Task call, int argl, void* args){
 	if(call != NULL){
 		// Spawn a new thread
 		TCB* tcb = spawn_thread(newproc, start_main_thread);
-		// TCB * tcb = spawn_thread(newproc, start_main_thread);
+
 		// Link the new thread with the PTCB
 		tcb->ptcb = ptcb;
 		ptcb->tcb = tcb;
-		
+
 		// wake up, grab your brush and put on a little make up
 		wakeup(ptcb->tcb);
 	}
