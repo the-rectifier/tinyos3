@@ -42,6 +42,7 @@ int boot_symposium(int argl, void* args)
 
   /* Just start task Symposium */
   Exec(SymposiumOfProcesses, argl, args);
+  // Exec(SymposiumOfThreads, argl, args);
 
   Close(0);
   Close(1);

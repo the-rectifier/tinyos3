@@ -985,11 +985,12 @@ BOOT_TEST(test_create_join_thread,
 }
 
 BOOT_TEST(test_just_create, "Test that a process thread can be created. Also, that the argument of the thread is passed correctly."){
-	int flag = 0;
+	int flag = 69;
 
 	int task(int argl, void* args){
 		ASSERT(args == &flag);
 		*(int*)args = 1;
+		puts("SUCCESS");
 		return 2;
 	}
 

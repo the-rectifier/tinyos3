@@ -15,8 +15,7 @@ Tid_t sys_CreateThread(Task task, int argl, void* args)
 	CURPROC->thread_count++;
 	PTCB * ptcb = init_PTCB(task, argl, args);
 
-	rlnode * ptcb_node = rlnode_init(&ptcb->ptcb_list_node, ptcb);
-	rlist_push_back(&CURPROC->ptcb_list, ptcb_node);
+	rlist_push_back(&CURPROC->ptcb_list, &ptcb->ptcb_list_node);
 
 	// Just like sys_exec()
 	if(task != NULL){
@@ -64,11 +63,13 @@ void sys_ThreadExit(int exitval)
 
 PTCB * init_PTCB(Task task, int argl, void* args){
 	PTCB * ptcb = (PTCB *)xmalloc(sizeof(PTCB));
+	
+	rlnode_init(&ptcb->ptcb_list_node, ptcb);
 
 	ptcb->task = task;
 	ptcb->argl = argl;
 	if(args != NULL){
-		ptcb->args = malloc(argl);
+		ptcb->args = xmalloc(argl);
 		memcpy(ptcb->args, args, argl);
 	}else{ptcb->args = NULL;}
 

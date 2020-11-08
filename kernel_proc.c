@@ -193,8 +193,7 @@ Pid_t sys_Exec(Task call, int argl, void* args){
 	// Create new PTCB
 	// Add it to the list of the Process
 	PTCB* ptcb = init_PTCB(call, argl, args);
-	rlnode * ptcb_node = rlnode_init(&ptcb->ptcb_list_node, ptcb);
-	rlist_push_back(&newproc->ptcb_list, ptcb_node);
+	rlist_push_back(&newproc->ptcb_list, &ptcb->ptcb_list_node);
 
 	/*
 	Create and wake up the thread for the main function. This must be the last thing
