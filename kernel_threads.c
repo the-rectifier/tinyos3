@@ -10,7 +10,7 @@ Tid_t sys_CreateThread(Task task, int argl, void* args)
 	//Use some kind of mutex?
 	//Check if the current process running is the owner of the current thread
 	
-	assert(CURPROC == CURTHREAD->owner_pcb);
+	assert(CURPROC == cur_thread()->owner_pcb);
 
 	CURPROC->thread_count++;
 	PTCB * ptcb = init_PTCB(task, argl, args);
