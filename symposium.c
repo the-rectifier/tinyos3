@@ -168,6 +168,7 @@ int PhilosopherProcess(int argl, void* args)
  */
 int SymposiumOfProcesses(int argl, void* args)
 {
+  puts("MULTIPROCESSING!");
   assert(argl == sizeof(symposium_t));
   symposium_t* symp = args;
   int N = symp->N;
@@ -206,6 +207,7 @@ int PhilosopherThread(int i, void* symp)
  */
 int SymposiumOfThreads(int argl, void* args)
 {
+  puts("MULTITHREADING");
 	assert(argl == sizeof(symposium_t));
 	symposium_t* symp = args;
 	int N = symp->N;
@@ -224,7 +226,7 @@ int SymposiumOfThreads(int argl, void* args)
 	for(int i=0;i<N;i++) {
 		ThreadJoin(thread[i],NULL);
 	}
-
+  
 	SymposiumTable_destroy(&S);
 
 	return 0;
