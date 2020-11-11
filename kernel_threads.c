@@ -7,24 +7,29 @@
   */
 Tid_t sys_CreateThread(Task task, int argl, void* args)
 {
-	//Use some kind of mutex?
-	//Check if the current process running is the owner of the current thread
 	
+	PTCB * ptcb = NOTHREAD;
+
+	//Check if the current process running is the owner of the current thread
 	assert(CURPROC == cur_thread()->owner_pcb);
-
-	CURPROC->thread_count++;
-	PTCB * ptcb = init_PTCB(task, argl, args);
-
-	rlist_push_back(&CURPROC->ptcb_list, &ptcb->ptcb_list_node);
 
 	// Just like sys_exec()
 	if(task != NULL){
+		// new thread on the process
+		CURPROC->thread_count++;
+		// grab new ptcb
+		ptcb = init_PTCB(task, argl, args);
+
+		// push back the ptcb 
+		rlist_push_back(&CURPROC->ptcb_list, &ptcb->ptcb_list_node);
+		// spawn the new thread and make neccessary connetions
 		TCB * tcb = spawn_thread(CURPROC, start_thread);
 		ptcb->tcb = tcb;
 		tcb->ptcb = ptcb;
+
+		// wake up thread
 		wakeup(ptcb->tcb);
 	}
-	
 
 	return (Tid_t ) ptcb;
 }
