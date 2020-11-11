@@ -202,6 +202,7 @@ Pid_t sys_Exec(Task call, int argl, void* args){
 		// Create new PTCB
 		// Add it to the list of the Process
 		PTCB* ptcb = init_PTCB(call, argl, args);
+
 		newproc->thread_count = 1;
 		rlist_push_back(&newproc->ptcb_list, &ptcb->ptcb_list_node);
 

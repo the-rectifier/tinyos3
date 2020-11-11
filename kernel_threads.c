@@ -10,9 +10,6 @@ Tid_t sys_CreateThread(Task task, int argl, void* args)
 	
 	PTCB * ptcb = NOTHREAD;
 
-	//Check if the current process running is the owner of the current thread
-	assert(CURPROC == cur_thread()->owner_pcb);
-
 	// Just like sys_exec()
 	if(task != NULL){
 		// new thread on the process
@@ -47,9 +44,10 @@ Tid_t sys_ThreadSelf()
   */
 int sys_ThreadJoin(Tid_t tid, int* exitval)
 {
-	// try to find the PCB 
-	PTCB * ptcb = rlist_find(&(cur_thread()->owner_pcb->ptcb_list), tid, NULL);
-	// assert(ptcb != NULL);
+	// try to find the PTCB 
+	PTCB * ptcb = (PTCB*) rlist_find(&(cur_thread()->owner_pcb->ptcb_list), (PTCB *)tid, NULL)->ptcb;
+
+	//assert(ptcb != NULL);
 
 	// can't join a detached thread
 	// can't join our selves ffs....
@@ -63,6 +61,7 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
 			kernel_wait(&ptcb->exit_cv, SCHED_MUTEX);
 		}
 		// check if thread exited w/ detached status
+		ptcb->ref_count--;
 		if(ptcb->detached){
 			return -1;
 		}else{
@@ -70,11 +69,13 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
 			if(exitval){
 				*(exitval) = ptcb->exitval;
 			}
-			// if last waiting then clear ptcb might change
-			if(ptcb->ref_count == 0){
+			// if last waiting then clear ptcb 
+			// might change
+			if(ptcb->ref_count < 1){
 				rlist_remove(&ptcb->ptcb_list_node);
 				free(ptcb);
 			}
+			return 0;
 		}
 
 	}
@@ -86,6 +87,20 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
   */
 int sys_ThreadDetach(Tid_t tid)
 {
+
+	PTCB * ptcb = (PTCB*) rlist_find(&(cur_thread()->owner_pcb->ptcb_list), (PTCB *)tid, NULL)->ptcb;
+
+	// assert(ptcb != NULL);
+	// cant detach an exited thread
+	if(ptcb->exited && ptcb == NULL){
+		return -1;
+	}else{
+		ptcb->detached = 1;
+		ptcb->ref_count = 0;
+		kernel_broadcast(&ptcb->exit_cv);
+		return 0;
+	}
+
 	return -1;
 }
 
@@ -94,7 +109,14 @@ int sys_ThreadDetach(Tid_t tid)
   */
 void sys_ThreadExit(int exitval)
 {
+	PTCB * ptcb = cur_thread()->ptcb;
+	CURPROC->thread_count--;
 
+	ptcb->exited = 1;
+	ptcb->exitval = exitval;
+
+	kernel_broadcast(&ptcb->exit_cv);
+	kernel_sleep(EXITED, SCHED_MUTEX);
 }
 
 PTCB * init_PTCB(Task task, int argl, void* args){
@@ -105,8 +127,7 @@ PTCB * init_PTCB(Task task, int argl, void* args){
 	ptcb->task = task;
 	ptcb->argl = argl;
 	if(args != NULL){
-		ptcb->args = xmalloc(argl);
-		memcpy(ptcb->args, args, argl);
+		ptcb->args = args;
 	}else{ptcb->args = NULL;}
 
 	ptcb->exitval = -1;
