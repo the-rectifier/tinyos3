@@ -42,7 +42,38 @@ Tid_t sys_ThreadSelf()
   */
 int sys_ThreadJoin(Tid_t tid, int* exitval)
 {
-	return -1;
+	// try to find the PCB 
+	PTCB * ptcb = rlist_find(&(cur_thread()->owner_pcb->ptcb_list), tid, NULL);
+	// assert(ptcb != NULL);
+
+	// can't join a detached thread
+	// can't join our selves ffs....
+	// can't join a thread with no ptcb obv...
+	if((ptcb == NULL) || (ptcb->detached) || (ptcb->tcb == cur_thread())){return -1;}
+	else{
+		// one more to the waiting list
+		ptcb->ref_count++;
+		// sleep until thread exits or thread is detached
+		while(!ptcb->exited && !ptcb->detached){
+			kernel_wait(&ptcb->exit_cv, SCHED_MUTEX);
+		}
+		// check if thread exited w/ detached status
+		if(ptcb->detached){
+			return -1;
+		}else{
+			// set any exit value
+			if(exitval){
+				*(exitval) = ptcb->exitval;
+			}
+			// if last waiting then clear ptcb might change
+			if(ptcb->ref_count == 0){
+				rlist_remove(&ptcb->ptcb_list_node);
+				free(ptcb);
+			}
+		}
+
+	}
+	
 }
 
 /**
