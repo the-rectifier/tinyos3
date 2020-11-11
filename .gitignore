@@ -9,3 +9,7 @@ tinyos_shell
 validate_api
 test_example
 doc/
+
+test_kernel
+
+vgcore.*
