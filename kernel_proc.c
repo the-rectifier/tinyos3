@@ -42,7 +42,7 @@ static inline void initialize_PCB(PCB* pcb){
 	rlnode_init(& pcb->exited_node, pcb);
 
 	// rlnode_init(& pcb->ptcb_list, NULL);
-	rlnode_new(&pcb->ptcb_list);
+	rlnode_init(&pcb->ptcb_list, NULL);
 	pcb->child_exit = COND_INIT;
 }
 
