@@ -44,7 +44,11 @@ Tid_t sys_ThreadSelf()
 int sys_ThreadJoin(Tid_t tid, int* exitval)
 {
 	// try to find the PTCB 
-	PTCB * ptcb = (PTCB*) rlist_find(&(cur_thread()->owner_pcb->ptcb_list), (PTCB *)tid, NULL)->ptcb;
+	rlnode* node = rlist_find(&(cur_thread()->owner_pcb->ptcb_list), (PTCB *)tid, NULL);
+	if(node == NULL){
+		return -1;
+	}
+	PTCB* ptcb = node->ptcb;
 
 	//assert(ptcb != NULL);
 
@@ -87,7 +91,11 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
 int sys_ThreadDetach(Tid_t tid)
 {
 
-	PTCB * ptcb = (PTCB*) rlist_find(&(cur_thread()->owner_pcb->ptcb_list), (PTCB *)tid, NULL)->ptcb;
+	rlnode* node = rlist_find(&(cur_thread()->owner_pcb->ptcb_list), (PTCB *)tid, NULL);
+	if(node == NULL){
+		return -1;
+	}
+	PTCB* ptcb = node->ptcb;
 
 	// assert(ptcb != NULL);
 	// cant detach an exited thread
