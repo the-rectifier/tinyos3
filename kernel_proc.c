@@ -41,7 +41,8 @@ static inline void initialize_PCB(PCB* pcb){
 	rlnode_init(& pcb->children_node, pcb);
 	rlnode_init(& pcb->exited_node, pcb);
 
-	rlnode_init(& pcb->ptcb_list, NULL);
+	// rlnode_init(& pcb->ptcb_list, NULL);
+	rlnode_new(&pcb->ptcb_list);
 	pcb->child_exit = COND_INIT;
 }
 
@@ -111,14 +112,9 @@ to execute the main thread of a process.
 void start_main_thread(){
 	int exitval;
 
-	TCB* tcb = cur_thread();
-	PTCB* ptcb = tcb->ptcb;
-
-	assert(ptcb != NULL);
-
-	Task call =  ptcb->task;
-	int argl = ptcb->argl;
-	void* args = ptcb->args;
+	Task call =  CURPROC->main_task;
+	int argl = CURPROC->argl;
+	void* args = CURPROC->args;
 
 	exitval = call(argl,args);
 	Exit(exitval);
@@ -310,22 +306,22 @@ Pid_t sys_WaitChild(Pid_t cpid, int* status){
 void sys_Exit(int exitval)
 {
 
-	PCB *curproc = CURPROC;  /* cache for efficiency */
+	// PCB *curproc = CURPROC;  /* cache for efficiency */
 
 	/* First, store the exit status */
-	curproc->exitval = exitval;
+	CURPROC->exitval = exitval;
 
 	/* 
 		Here, we must check that we are not the init task. 
 		If we are, we must wait until all child processes exit. 
 	*/
-	if(get_pid(curproc)==1) {
+	if(get_pid(CURPROC)==1) {
 
 		while(sys_WaitChild(NOPROC,NULL)!=NOPROC);
 
-	} 
+	}
 
-	ThreadExit(exitval);
+	sys_ThreadExit(exitval);
 }	
 
 Fid_t sys_OpenInfo(){
