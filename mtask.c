@@ -49,8 +49,10 @@ int boot_symposium(int argl, void* args)
 
   while( WaitChild(NOPROC, NULL)!=NOPROC ); /* Wait for all children */
 
+  
   tinyos_restore_stdio();
 
+  fprintf(stderr, "Finished Symposium\n");
   return 0;
 }
 

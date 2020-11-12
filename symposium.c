@@ -225,9 +225,12 @@ int SymposiumOfThreads(int argl, void* args)
 	/* Wait for philosophers to exit */  
 	for(int i=0;i<N;i++) {
 		ThreadJoin(thread[i],NULL);
+    fprintf(stderr, "Joined THREAD: %d\n", i);
 	}
   
+  fprintf(stderr, "Finished joining\n");
 	SymposiumTable_destroy(&S);
+  fprintf(stderr, "Not hungry anymore\n");
 
 	return 0;
 }
