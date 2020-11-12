@@ -1,4 +1,5 @@
 #include <kernel_sched.h>
+#include <kernel_streams.h>
 
 typedef struct process_thread_control_block{
 	TCB* tcb;
@@ -19,6 +20,8 @@ typedef struct process_thread_control_block{
 }PTCB;
 
 PTCB * init_PTCB(Task, int, void*);
+
+void kill_thread(int);
 
 // Tid_t sys_CreateThread(Task, int, void*);
 
