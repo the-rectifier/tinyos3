@@ -25,6 +25,16 @@
 #include "util.h"
 #include "kernel_threads.h"
 
+/*
+* 5 priority levels
+* every 400 yields boost everyone up one ladder
+*/
+#define PRIO_LEVELS 5
+#define BOOST_CYCL 400
+
+
+void boost_low(void);
+
 /*****************************
  *
  *  The Thread Control Block
@@ -116,7 +126,8 @@ typedef struct thread_control_block {
 	rlnode sched_node; /**< @brief Node to use when queueing in the scheduler queue */
 	TimerDuration its; /**< @brief Initial time-slice for this thread */
 	TimerDuration rts; /**< @brief Remaining time-slice for this thread */
-
+  // Adjust for multiple priority levels
+  int prio;
 	enum SCHED_CAUSE curr_cause; /**< @brief The endcause for the current time-slice */
 	enum SCHED_CAUSE last_cause; /**< @brief The endcause for the last time-slice */
 

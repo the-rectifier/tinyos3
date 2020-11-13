@@ -21,6 +21,8 @@
 /* Core control blocks */
 CCB cctx[MAX_CORES];
 
+// charity counter
+static int boost_count = 0;
 
 /* 
 	The current core's CCB. This must only be used in a 
@@ -168,6 +170,7 @@ TCB* spawn_thread(PCB* pcb, void (*func)())
 
 	tcb->its = QUANTUM;
 	tcb->rts = QUANTUM;
+	tcb->prio = PRIO_LEVELS-1;
 	tcb->last_cause = SCHED_IDLE;
 	tcb->curr_cause = SCHED_IDLE;
 
@@ -225,7 +228,8 @@ void release_TCB(TCB* tcb)
   Both of these structures are protected by @c sched_spinlock.
 */
 
-rlnode SCHED; /* The scheduler queue */
+// Adjust for multiple priority levels
+rlnode SCHED[PRIO_LEVELS]; /* The scheduler queue */
 rlnode TIMEOUT_LIST; /* The list of threads with a timeout */
 Mutex sched_spinlock = MUTEX_INIT; /* spinlock for scheduler queue */
 
@@ -268,7 +272,7 @@ static void sched_register_timeout(TCB* tcb, TimerDuration timeout)
 static void sched_queue_add(TCB* tcb)
 {
 	/* Insert at the end of the scheduling list */
-	rlist_push_back(&SCHED, &tcb->sched_node);
+	rlist_push_back(&SCHED[tcb->prio], &tcb->sched_node);
 
 	/* Restart possibly halted cores */
 	cpu_core_restart_one();
@@ -326,12 +330,19 @@ static void sched_wakeup_expired_timeouts()
 */
 static TCB* sched_queue_select(TCB* current)
 {
+	int i = PRIO_LEVELS-1;
+
+	/* Schedule the first TCB from the highest NON-empty prio level */
+
+	while(is_rlist_empty(&SCHED[i]) && i > 1 ){i--;}
+
 	/* Get the head of the SCHED list */
-	rlnode* sel = rlist_pop_front(&SCHED);
+	
+	rlnode * sel = rlist_pop_front(&SCHED[i]);
 
 	TCB* next_thread = sel->tcb; /* When the list is empty, this is NULL */
 
-	if (next_thread == NULL)
+	if (next_thread == NULL || sel == NULL)
 		next_thread = (current->state == READY) ? current : &CURCORE.idle_thread;
 
 	next_thread->its = QUANTUM;
@@ -424,6 +435,40 @@ void yield(enum SCHED_CAUSE cause)
 	current->last_cause = current->curr_cause;
 	current->curr_cause = cause;
 
+	boost_count++;
+	/*
+	 * Some TCBs are created more equally that others	
+	 * Treat them as such
+	*/
+	switch(cause){
+	case SCHED_QUANTUM:
+		if(current->prio > 0){
+			current->prio--;
+		}
+		break;
+	case SCHED_IO:
+		if(current->prio < PRIO_LEVELS -1){
+			current->prio++;
+		}
+		break;
+	case SCHED_MUTEX:
+		if(current->curr_cause == SCHED_MUTEX && current->last_cause == SCHED_MUTEX && current->prio > 0){
+			current->prio--;
+		}
+		break;
+	case SCHED_USER:
+		break;
+	default:
+		break;
+	}
+
+	/*
+	*	Do i look like a charity?
+	*	Boost the low prio TCBs
+	*/
+	if(boost_count == BOOST_CYCL){
+		boost_low();
+	}
 	/* Wake up threads whose sleep timeout has expired */
 	sched_wakeup_expired_timeouts();
 
@@ -446,6 +491,24 @@ void yield(enum SCHED_CAUSE cause)
 	   may have passed. Start a new timeslice...
 	  */
 	gain(preempt);
+}
+
+/*
+ *	Loop in every scheduler priority list (except highest) and move every 
+ *	TCB to the next one
+ *
+ */
+void boost_low(void){
+	for(int i=0;i<PRIO_LEVELS-1;i++){
+		while(!is_rlist_empty(&SCHED[i])){
+			TCB * tcb = rlist_pop_front(&SCHED[i])->tcb;
+			if(tcb->prio != PRIO_LEVELS - 1){
+				tcb->prio++;
+			}
+			sched_queue_add(tcb);
+		}
+	}
+	boost_count = 0;
 }
 
 /*
@@ -521,7 +584,10 @@ static void idle_thread()
  */
 void initialize_scheduler()
 {
-	rlnode_init(&SCHED, NULL);
+	/* Init every priority level */
+	for(int i=0;i<PRIO_LEVELS;i++){
+		rlnode_init(&SCHED[i], NULL);
+	}
 	rlnode_init(&TIMEOUT_LIST, NULL);
 }
 
