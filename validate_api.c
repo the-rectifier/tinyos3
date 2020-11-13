@@ -1278,9 +1278,13 @@ BOOT_TEST(test_cyclic_joins,
 	/* Now, threads are in deadlock! To break the deadlock,
 	   detach thread 0. */
 	ThreadDetach(tids[0]);
-	/* To make sure that other threads escape deadlock, join them! */
+
+	/* Finally join any threads that may not be joined.
+	   Some of these ThreadJoin() may fail, but this thread will 
+	   exit after all 'join_thread' threads.
+	 */
 	for(unsigned int i=1; i<N; i++)
-		ASSERT(ThreadJoin(tids[i], NULL)==0);	
+		ThreadJoin(tids[i], NULL);	
 
 	return 0;
 }
