@@ -121,6 +121,14 @@ void start_main_thread(){
 	
 }
 
+/*
+	Start the thread
+	Copy args from the ptcb 
+	Copy function 
+	Run
+	Then exit
+	Profit?
+*/
 void start_thread(){
 	int exitval;
 

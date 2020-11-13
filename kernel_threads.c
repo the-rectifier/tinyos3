@@ -31,7 +31,7 @@ Tid_t sys_CreateThread(Task task, int argl, void* args)
 }
 
 /**
-  @brief Return the Tid of the current thread.
+  @brief Return the Tid of the current PTCB
  */
 Tid_t sys_ThreadSelf()
 {
@@ -40,6 +40,9 @@ Tid_t sys_ThreadSelf()
 
 /**
   @brief Join the given thread.
+  An exited thread needs another to join it in order to be freed
+  Otherwise the PTCBs are freed by the last thread of the process when exiting
+  Return 0 on SUCCESS -1 on failure
   */
 int sys_ThreadJoin(Tid_t tid, int* exitval)
 {
@@ -87,6 +90,8 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
 
 /**
   @brief Detach the given thread.
+  A detached thread is freed on exit from the last process thread.
+  A thread can detach itself
   */
 int sys_ThreadDetach(Tid_t tid)
 {
@@ -102,8 +107,12 @@ int sys_ThreadDetach(Tid_t tid)
 	if(ptcb->exited && ptcb == NULL){
 		return -1;
 	}else{
+		// Mark PTCB as detached
 		ptcb->detached = 1;
+		// A detached thread cant be waited from anyone
+		// Mark it's references as 0
 		ptcb->ref_count = 0;
+		// Broadcast for detachment
 		kernel_broadcast(&ptcb->exit_cv);
 		return 0;
 	}
@@ -112,8 +121,9 @@ int sys_ThreadDetach(Tid_t tid)
 }
 
 /**
-  @brief Terminate the current thread.
-  */
+ * @brief Terminate the current thread.
+ * The last thread cleans up the PTCB list of the process
+ */
 void sys_ThreadExit(int exitval)
 {	
 	kill_thread(exitval);
@@ -121,6 +131,8 @@ void sys_ThreadExit(int exitval)
 	if(CURPROC->thread_count == 0){
 		PCB * curproc = CURPROC;
 		
+		// cannot reparent init 
+		// from the new updates after Oct 2020
 		if(get_pid(curproc) != 1){
 			/* Reparent any children of the exiting process to the 
 			initial task */
@@ -182,8 +194,10 @@ void sys_ThreadExit(int exitval)
 
 void kill_thread(int exitval){
 	PTCB * ptcb = cur_thread()->ptcb;
+	// Mark thread as exited and pass the exit value
 	ptcb->exited = 1;
 	ptcb->exitval = exitval;
+	// Broadcast
 	kernel_broadcast(&ptcb->exit_cv);
 	CURPROC->thread_count--;
 }

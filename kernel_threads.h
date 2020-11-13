@@ -1,6 +1,10 @@
 #include <kernel_sched.h>
 #include <kernel_streams.h>
 
+/*
+	Intermediate data structure to achieve
+	multithreading implenentation 
+*/
 typedef struct process_thread_control_block{
 	TCB* tcb;
 
@@ -19,8 +23,18 @@ typedef struct process_thread_control_block{
 	rlnode ptcb_list_node;
 }PTCB;
 
+/*
+	Initializes the PTCB structure and also its intrusive node
+	returns a ptr to the newly created PTCB
+*/
 PTCB * init_PTCB(Task, int, void*);
 
+/*
+	Marks a PTCB as exited 
+	Decrements it's PCB's thread counter
+	Broadcasts to all listeners for a death in the family 
+	*SPOILERS* robin dies :(
+*/
 void kill_thread(int);
 
 // Tid_t sys_CreateThread(Task, int, void*);
