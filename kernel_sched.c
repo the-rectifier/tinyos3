@@ -334,7 +334,7 @@ static TCB* sched_queue_select(TCB* current)
 
 	/* Schedule the first TCB from the highest NON-empty prio level */
 
-	while(is_rlist_empty(&SCHED[i]) && i > 1 ){i--;}
+	while(is_rlist_empty(&SCHED[i]) && i > 0 ){i--;}
 
 	/* Get the head of the SCHED list */
 	
