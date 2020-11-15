@@ -2,30 +2,31 @@
 #include "kernel_sched.h"
 #include "kernel_proc.h"
 #include "kernel_cc.h"
+
 /** 
   @brief Create a new thread in the current process.
   */
 Tid_t sys_CreateThread(Task task, int argl, void* args)
 {
-	PTCB * ptcb = NOTHREAD;
+	if(task == NULL){
+		return NOTHREAD;
+	}
 
 	// Just like sys_exec()
-	if(task != NULL){
-		// new thread on the process
-		CURPROC->thread_count++;
-		// grab new ptcb
-		ptcb = init_PTCB(task, argl, args);
+	// new thread on the process
+	CURPROC->thread_count++;
+	// grab new ptcb
+	PTCB * ptcb = init_PTCB(task, argl, args);
 
-		// push back the ptcb 
-		rlist_push_back(&CURPROC->ptcb_list, &ptcb->ptcb_list_node);
-		// spawn the new thread and make neccessary connetions
-		TCB * tcb = spawn_thread(CURPROC, start_thread);
-		ptcb->tcb = tcb;
-		tcb->ptcb = ptcb;
+	// push back the ptcb 
+	rlist_push_back(&CURPROC->ptcb_list, &ptcb->ptcb_list_node);
+	// spawn the new thread and make neccessary connetions
+	TCB * tcb = spawn_thread(CURPROC, start_thread);
+	ptcb->tcb = tcb;
+	tcb->ptcb = ptcb;
 
-		// wake up thread
-		wakeup(ptcb->tcb);
-	}
+	// wake up thread
+	wakeup(ptcb->tcb);
 
 	return (Tid_t ) ptcb;
 }
@@ -42,7 +43,7 @@ Tid_t sys_ThreadSelf()
   @brief Join the given thread.
   An exited thread needs another to join it in order to be freed
   Otherwise the PTCBs are freed by the last thread of the process when exiting
-  Return 0 on SUCCESS -1 on failure
+  Return 0 on SUCCESS -1 on FAILURE
   */
 int sys_ThreadJoin(Tid_t tid, int* exitval)
 {
@@ -52,6 +53,8 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
 		return -1;
 	}
 	PTCB* ptcb = node->ptcb;
+
+	// PTCB* ptcb = (PTCB *)tid;
 
 	//assert(ptcb != NULL);
 
@@ -102,9 +105,10 @@ int sys_ThreadDetach(Tid_t tid)
 	}
 	PTCB* ptcb = node->ptcb;
 
+
 	// assert(ptcb != NULL);
 	// cant detach an exited thread
-	if(ptcb->exited && ptcb == NULL){
+	if(ptcb == NULL || ptcb->exited){
 		return -1;
 	}else{
 		// Mark PTCB as detached
