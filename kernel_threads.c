@@ -179,6 +179,7 @@ void sys_ThreadExit(int exitval)
 			}
 		}
 
+		/* cleanup detached threads */
 		while(!is_rlist_empty(&curproc->ptcb_list)){
 			PTCB * ptcb_temp = rlist_pop_front(&curproc->ptcb_list)->ptcb;
 			assert(ptcb_temp != NULL);
@@ -211,9 +212,7 @@ PTCB * init_PTCB(Task task, int argl, void* args){
 
 	ptcb->task = task;
 	ptcb->argl = argl;
-	if(args != NULL){
-		ptcb->args = args;
-	}else{ptcb->args = NULL;}
+	ptcb->args = args;
 
 	ptcb->exitval = 0;
 	ptcb->exited = 0;
