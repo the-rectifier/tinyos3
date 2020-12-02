@@ -28,6 +28,13 @@ static file_ops writer_fops = {
 
 PIPE_CB * init_PIPE_CB(FCB ** fcbs){
 
+	/** Create a new PIPE_CB
+	 * Assign to the reader/writer fields the correct FCB pointers
+	 * Init the Cond Vars
+	 * Init the buffer positions
+	 * Init the buffer w/ NULL bytes
+	 */
+
 	PIPE_CB * pipe = (PIPE_CB *)xmalloc(sizeof(PIPE_CB));
 
 	pipe->reader = fcbs[READ];
@@ -39,27 +46,33 @@ PIPE_CB * init_PIPE_CB(FCB ** fcbs){
 	pipe->w_pos = 0;
 	pipe->r_pos = 0;
 
+	memset(pipe->BUFFER, 0, PIPE_BUFFER_SIZE);
+
 	return pipe;
 }
 
 
 int sys_Pipe(pipe_t* pipe)
 {
+	/* Create and reserve 2 FIDs and their 2 corresponding FCBs */
 	Fid_t fids[2];
 	FCB * fcbs[2];
 
 	if(!FCB_reserve(2, fids, fcbs))
 		return -1;
 	
+	/* Initialize the PIPE_CB */
 	PIPE_CB * pipe_cb = init_PIPE_CB(fcbs);
 
-
+	/* Connect the given pipe with the the reserved FIDs */
 	pipe->read = fids[READ];
 	pipe->write = fids[WRITE];
 
+	/* The stream object is our PIPE_CB */
 	fcbs[READ]->streamobj = pipe_cb;
 	fcbs[WRITE]->streamobj = pipe_cb;
 
+	/* Assign the corresponding functions to each FCB */
 	fcbs[READ]->streamfunc = &reader_fops;
 	fcbs[WRITE]->streamfunc = &writer_fops;
 
