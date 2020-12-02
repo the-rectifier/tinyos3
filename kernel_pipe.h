@@ -20,8 +20,8 @@ typedef struct pipe_control_block{
     CondVar has_space;
 
     /* Read / Write indices on the BUFFER */
-    unsigned int w_pos;
-    unsigned int r_pos;
+    uint w_pos;
+    uint r_pos;
 
     /* The buffer used for Writing / Reading */
     char BUFFER[PIPE_BUFFER_SIZE];
@@ -29,7 +29,7 @@ typedef struct pipe_control_block{
 
 
 /* Function for reading from PIPE */
-int pipe_read(void *, const char *, unsigned int);
+int pipe_read(void *, char *, unsigned int);
 /* Close reading end */
 int pipe_read_close(void *);
 /* Function for writing to the PIPE */
@@ -37,8 +37,8 @@ int pipe_write(void *, const char *, unsigned int);
 /* Close writing end */
 int pipe_write_close(void *);
 /* Bad read to be used in file_ops for writer */
-int bad_pipe_read(void *, const char *, unsigned int);
+int bad_pipe_read(void *, char *, unsigned int);
 /* Bad write to be used in file_ops for reader */
 int bad_pipe_write(void *, const char *, unsigned int);
 /* Bad open to be used in both file_ops */
-void * bad_pipe_open(void *);
+void * bad_pipe_open(uint);

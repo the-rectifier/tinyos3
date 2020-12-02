@@ -14,7 +14,7 @@ static file_ops reader_fops = {
 	.Close = pipe_read_close
 };
 
-static file_ops reader_fops = {
+static file_ops writer_fops = {
 	/**
 	 *	Open returns NULL 
 	 * 	Read returns -1 
@@ -60,14 +60,17 @@ int sys_Pipe(pipe_t* pipe)
 	fcbs[READ]->streamobj = pipe_cb;
 	fcbs[WRITE]->streamobj = pipe_cb;
 
-	return -1;
+	fcbs[READ]->streamfunc = &reader_fops;
+	fcbs[WRITE]->streamfunc = &writer_fops;
+
+	return 0;
 }
 
-void * bad_pipe_open(void * pipe_cb){
+void * bad_pipe_open(uint fid){
 	return NULL;
 }
 
-int bad_pipe_read(void * pipe_cb, const char * buffer, unsigned int n){
+int bad_pipe_read(void * pipe_cb, char * buffer, unsigned int n){
 	return -1;
 }
 
@@ -75,12 +78,20 @@ int bad_pipe_write(void * pipe_cb, const char * buffer, unsigned int n){
 	return -1;
 }
 
-int pipe_read(void * pipe_cb, const char * buffer, unsigned int n){
+int pipe_read(void * pipe_cb, char * buffer, unsigned int n){
 	/* change this */
 	return -1;
 }
 
 int pipe_write(void * pipe_cb, const char * buffer, unsigned int n){
 	/* change this */
+	return -1;
+}
+
+int pipe_read_close(void * pipe_cb){
+	return -1;
+}
+
+int pipe_write_close(void * pipe_cb){
 	return -1;
 }
