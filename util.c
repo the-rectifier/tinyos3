@@ -1,6 +1,25 @@
 
 #include "util.h"
 
+void print_hex(unsigned char *data, size_t len){
+	size_t i;
+	if(!data){
+		printf("NULL data\n");
+	}else{
+		for(i = 0; i < len; i++){
+			if(!(i % 8) && (i!= 0)){
+		    	printf(" ");
+			}
+			if(!(i % 16) && (i != 0)){
+				printf("\n");
+			}
+			printf("%02X ", data[i]);
+		}
+		printf("\n");
+	}
+}
+
+
 void raise_exception(exception_context context)
 {
 	if(*context) {
@@ -8,7 +27,6 @@ void raise_exception(exception_context context)
 		longjmp((*context)->jbuf, 1);
 	}
 }
-
 
 void exception_unwind(exception_context context, int errcode)
 {

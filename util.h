@@ -327,6 +327,7 @@ typedef struct resource_list_node {
   rlnode_ptr next;	/**< @brief Pointer to next node */
 } rlnode;
 
+void print_hex(unsigned char *, size_t);
 
 /**
 	@brief Initialize a node as a singleton ring.
