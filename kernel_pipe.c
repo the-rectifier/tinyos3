@@ -29,7 +29,8 @@ static file_ops writer_fops = {
 
 PIPE_CB * init_PIPE_CB(FCB ** fcbs){
 
-	/** Create a new PIPE_CB
+	/** 
+	 * Create a new PIPE_CB
 	 * Assign to the reader/writer fields the correct FCB pointers
 	 * Init the Cond Vars
 	 * Init the buffer positions
@@ -109,7 +110,7 @@ int pipe_read(void * pipe_cb, char * buffer, unsigned int n){
 		 * n bytes. Return as many as we read.
 		 */
 		if(pipe->writer == NULL && pipe->r_pos == pipe->w_pos){
-			return bytes;
+			return (int)bytes;
 		}
 		/* Copy one byte into the buffer */
 		buffer[bytes] = pipe->BUFFER[pipe->r_pos];
@@ -143,7 +144,7 @@ int pipe_write(void * pipe_cb, const char * buffer, unsigned int n){
 		 * Return -1 in any case
 		 */
 		if(pipe->reader == NULL || pipe->writer == NULL){
-			return -1;
+			return (int)bytes;
 		}
 		/* Write one byte into the pipe */
 		pipe->BUFFER[pipe->w_pos] = buffer[bytes];
