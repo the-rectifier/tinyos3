@@ -117,6 +117,7 @@ int pipe_read(void * pipe_cb, char * buffer, unsigned int n){
 		/* Increment the read position and return to start if necessary */
 		pipe->r_pos = (pipe->r_pos+1) % PIPE_BUFFER_SIZE;
 	}
+	kernel_broadcast(&pipe->need_space);
 	return (int)bytes;
 }
 
