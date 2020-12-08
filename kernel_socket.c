@@ -279,7 +279,8 @@ int socket_close(void * socket_cb){
 			PORT_MAP[scb->port] = NULL;
 			/* free the list of requests and signal each client */
 			while(!is_rlist_empty(&scb->props.listener_s->req_queue)){
-				rlist_pop_back(&scb->props.listener_s->req_queue);
+				rlnode * junk_node = rlist_pop_back(&scb->props.listener_s->req_queue);
+				free(junk_node->request_s);
 				kernel_signal(&scb->props.listener_s->req_available);
 			}
 			/* free the struct */
