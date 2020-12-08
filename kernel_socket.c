@@ -84,7 +84,7 @@ Fid_t sys_Accept(Fid_t lsock)
 	server->refcount++;
 
 	/* sleep until a request is made */
-	while(is_rlist_empty(&server->props.listener_s->req_queue)){
+	while(is_rlist_empty(&server->props.listener_s->req_queue) && server->type == SOCKET_LISTENER){
 		kernel_wait(&server->props.listener_s->req_available, SCHED_PIPE);
 	}
 
@@ -197,8 +197,13 @@ int sys_Connect(Fid_t sock, port_t port, timeout_t timeout)
 	/* restore ref count */
 	scb->refcount--;
 
-	/* return 0 if connected -1 if failed */
-	return (request_s->admitted) ? 0 : -1;
+	if(!request_s->admitted){
+		rlist_remove(&request_s->queue_node);
+		free(request_s);
+		return -1;
+	}
+
+	return 0;
 }
 
 
