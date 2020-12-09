@@ -4,7 +4,7 @@
 
 typedef struct {
     rlnode queue;
-    CondVar req_available;
+    CondVar req_available_cv;
 }listener_socket;
 
 typedef struct {
@@ -16,6 +16,13 @@ typedef struct {
     PIPE_CB * writer_pipe;
     PIPE_CB * reader_pipe;
 }peer_socket;
+
+typedef struct connection_request{
+    int admitted;
+    SCB * peer_SCb;
+    CondVar connected_cv;
+    rlnode queue_node;
+}con_request;
 
 
 typedef enum {
@@ -29,10 +36,10 @@ typedef struct socket_control_block{
     FCB * fcb;
     socket_type type;
     port_t port;
-    typedef union {
-        listener_socket listener_s;
-        unbound_socket unbound_s;
-        peer_socket peer_s;
-    }kernel_socket;
+    union {
+        listener_socket * listener_s;
+        unbound_socket * unbound_s;
+        peer_socket * peer_s;
+    }socket_struct;
     
 }SCB;
