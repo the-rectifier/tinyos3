@@ -58,8 +58,6 @@ int sys_Listen(Fid_t sock)
 	scb->type = SOCKET_LISTENER;
 	/* bind the socket to the port */
 	PORT_MAP[scb->port] = scb;
-	
-	
 
 	/* allocate the proper union field */
 	scb->props.listener_s = (lsock_t *)xmalloc(sizeof(lsock_t));
@@ -73,32 +71,39 @@ int sys_Listen(Fid_t sock)
 
 
 Fid_t sys_Accept(Fid_t lsock)
-{
+{	
 	SCB * server = get_scb(lsock);
 	/* check server type */
 	if(server == NULL || server->type != SOCKET_LISTENER){
 		return NOFILE;
 	}
 
+	port_t port = server->port;
 	/* do not disturb */
 	server->refcount++;
 
 	/* sleep until a request is made */
-	while(is_rlist_empty(&server->props.listener_s->req_queue) && server->type == SOCKET_LISTENER){
+	// while((PORT_MAP[server->port] != NULL) && 
+	if(is_rlist_empty(&server->props.listener_s->req_queue)){
 		kernel_wait(&server->props.listener_s->req_available, SCHED_PIPE);
 	}
 
+
+	/* check the port if still available */ 
+	if(PORT_MAP[port] == NULL){
+		SCB_decref(server);
+		return NOFILE;
+	}
+	
 	/* get the request from the list */
 	rlnode * request = rlist_pop_front(&server->props.listener_s->req_queue);
-	
+
 	/* since we woke up the request shouldn't be null */
 	assert(request != NULL);
 
 	/* get the request struct from the list node */
 	request_t * request_s = request->request_s;
-
-	/* check the server again */
-	server = get_scb(lsock);
+	
 	/* create a new socket to serv the client */
 	Fid_t peer = sys_Socket(NOPORT);
 	/* get the serv socket */
@@ -107,8 +112,9 @@ Fid_t sys_Accept(Fid_t lsock)
 	SCB * client = request_s->peer;
 
 	/* return error if the server is null or no socket was createt for the client */
-	if(server == NULL || peer == NOFILE){
+	if(peer == NOFILE){
 		kernel_signal(&request_s->connected_cv);
+		SCB_decref(server);
 		return NOFILE;
 	}
 
@@ -155,7 +161,7 @@ Fid_t sys_Accept(Fid_t lsock)
 	kernel_signal(&request_s->connected_cv);
 
 	/* you may enter */
-	server->refcount--;
+	SCB_decref(server);
 
 	return peer;
 }
@@ -194,16 +200,16 @@ int sys_Connect(Fid_t sock, port_t port, timeout_t timeout)
 	/* wait until timeout */
 	kernel_timedwait(&lscb->props.listener_s->req_available, SCHED_PIPE, timeout);
 
+	int ret = (request_s->admitted) ? 0 : -1;
+
+	/* remove the request after timeout */
+	rlist_remove(&request_s->queue_node);
+	free(request_s);
+
 	/* restore ref count */
-	scb->refcount--;
+	SCB_decref(scb);
 
-	if(!request_s->admitted){
-		rlist_remove(&request_s->queue_node);
-		free(request_s);
-		return -1;
-	}
-
-	return 0;
+	return ret;
 }
 
 
@@ -225,13 +231,21 @@ int sys_ShutDown(Fid_t sock, shutdown_mode how)
 {
 	SCB * scb = get_scb(sock);
 
+	if(scb == NULL){
+		return -1;
+	}
+
 	switch (how){
-	case SHUTDOWN_READ:
-		return pipe_read_close(scb->props.peer_s->read_pipe);
-	case SHUTDOWN_WRITE:
-		return pipe_write_close(scb->props.peer_s->write_pipe);
-	case SHUTDOWN_BOTH:
-		return socket_close(scb);
+		case SHUTDOWN_READ:
+			socket_close_read(scb);
+			return 0;
+		case SHUTDOWN_WRITE:
+			socket_close_write(scb);
+			return 0;
+		case SHUTDOWN_BOTH:
+			socket_close_read(scb);
+			socket_close_write(scb);
+			return 0;
 	}
 	return -1;
 }
@@ -240,10 +254,12 @@ int sys_ShutDown(Fid_t sock, shutdown_mode how)
 int socket_read(void* socket_cb, char * buffer, unsigned int n){
 	SCB * scb = (SCB *)socket_cb;
 	/** 
-	 * try to read only if the socket is connected 
+	 * try to read only if 
+	 * the socket is connected 
+	 * the socket has open read end
 	 * return -1 if not
 	 */
-	if(scb->type == SOCKET_PEER){
+	if(scb->type == SOCKET_PEER && scb->props.peer_s->read_pipe != NULL){
 		PIPE_CB * pipe = scb->props.peer_s->read_pipe;
 		return pipe_read(pipe, buffer, n);
 	}
@@ -254,10 +270,12 @@ int socket_read(void* socket_cb, char * buffer, unsigned int n){
 int socket_write(void* socket_cb, const char *buffer, unsigned int n){
 	SCB * scb = (SCB *)socket_cb;
 	/** 
-	 * try to write only if the socket is connected 
+	 * write only if 
+	 * the socket is connected 
+	 * the socket has open the write end
 	 * return -1 if not
 	 */
-	if(scb->type == SOCKET_PEER){
+	if(scb->type == SOCKET_PEER && scb->props.peer_s->write_pipe != NULL){
 		PIPE_CB * pipe = scb->props.peer_s->write_pipe;
 		return pipe_write(pipe, buffer, n);
 	}
@@ -280,24 +298,20 @@ int socket_close(void * socket_cb){
 			/* free the list of requests and signal each client */
 			while(!is_rlist_empty(&scb->props.listener_s->req_queue)){
 				rlnode * junk_node = rlist_pop_back(&scb->props.listener_s->req_queue);
-				free(junk_node->request_s);
-				kernel_signal(&scb->props.listener_s->req_available);
+				kernel_signal(&junk_node->request_s->connected_cv);
 			}
-			/* free the struct */
-			free(scb->props.listener_s);
+			/* signal the listener if sleeping */
+			kernel_signal(&scb->props.listener_s->req_available);
 			break;
 		case SOCKET_PEER:
-			/* check socket if connected, close pipes when necessary and set the client-side peer to NULL*/
-			if(scb->props.peer_s->peer != NULL){
-				pipe_read_close(scb->props.peer_s->read_pipe);
-				pipe_write_close(scb->props.peer_s->write_pipe);
-				scb->props.peer_s->peer->props.peer_s->peer = NULL;
-			}
-			free(scb->props.peer_s);
+			/* close pipes when necessary and set the peer to NULL*/
+			socket_close_read(scb);
+			socket_close_write(scb);
+			scb->props.peer_s->peer = NULL;
 			break;
 	}
-
-	free(scb);
+	/* decrease socket refcount */
+	SCB_decref(scb);
 	return 0;
 }
 
@@ -325,3 +339,36 @@ request_t * craft_request(SCB * scb){
 	return request_s;
 }
 
+void SCB_decref(SCB * scb){
+	scb->refcount--;
+	/* if the refcount is 0 then free respective union struct*/
+	if(scb->refcount == 0){
+		switch(scb->type){
+			case SOCKET_UNBOUND:
+				break;
+			case SOCKET_LISTENER:
+				free(scb->props.listener_s);
+				break;
+			case SOCKET_PEER:
+				free(scb->props.peer_s);
+				break;
+		}
+		free(scb);
+	}
+}
+
+void socket_close_read(SCB * scb){
+	/* check if has already been closed */
+	if(scb->props.peer_s->read_pipe != NULL){
+		/* close the pipe end and close the socket end */
+		pipe_read_close(scb->props.peer_s->read_pipe);
+		scb->props.peer_s->read_pipe = NULL;
+	}
+}
+
+void socket_close_write(SCB * scb){
+	if(scb->props.peer_s->write_pipe != NULL){
+		pipe_write_close(scb->props.peer_s->write_pipe);
+		scb->props.peer_s->write_pipe = NULL;
+	}
+}

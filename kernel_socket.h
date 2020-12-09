@@ -47,3 +47,6 @@ void * dummy_socket_open(uint);
 int socket_read(void*, char *, unsigned int);
 int socket_write(void*, const char *, unsigned int);
 int socket_close(void *);
+void SCB_decref(SCB *);
+void socket_close_read(SCB * scb);
+void socket_close_write(SCB * scb);
