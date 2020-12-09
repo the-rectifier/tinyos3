@@ -1,6 +1,8 @@
-
 #include "tinyos.h"
 #include "kernel_socket.h"
+#include "kernel_cc.h"
+
+SCB * PORT_MAP[MAX_PORT] = {NULL};
 
 file_ops socket_file_ops = {
         .Open = NULL,
@@ -21,9 +23,13 @@ SCB * init_scb(FCB * fcb, port_t port){
 
 Fid_t sys_Socket(port_t port)
 {
+	if((port < 0 || port >= MAX_PORT))
+		return NOFILE;
+
 	Fid_t  fid;
 	FCB * fcb;
-	if(!FCB_reserve(1, &fid, &fcb) || (port < 0 || port >= MAX_PORT))
+
+	if(!FCB_reserve(1, &fid, &fcb)
 		return NOFILE;
 
 	SCB * socket_cb = init_scb(fcb, port);
@@ -36,7 +42,26 @@ Fid_t sys_Socket(port_t port)
 
 int sys_Listen(Fid_t sock)
 {
-	return -1;
+	FCB * fcb = get_fcb(sock);
+
+	if(fcb == NULL)		//illegal fid -> fcb = null
+		return -1;
+
+	SCB * lsocket = fcb->streamobj;
+	assert(lsocket != NULL);
+
+	if(lsocket->type != SOCKET_UNBOUND || lsocket->port == NOPORT || PORT_MAP[lsocket->port] != NULL)			//socket is not bound to a port or port is occupied
+		return -1;
+
+	PORT_MAP[lsocket->port] = lsocket;	//add the listener scb to the PORT_MAP
+
+	lsocket->type = SOCKET_LISTENER;		//change type from unbound to listener
+	lsocket->socket_struct.listener_s = (listener_socket *) xmalloc(sizeof(listener_socket));
+	lsocket->socket_struct.listener_s->req_available_cv = COND_INIT;
+	rlnode_init(&lsocket->socket_struct.listener_s->queue, lsocket);  //initialize queue
+
+	return 0;
+
 }
 
 
