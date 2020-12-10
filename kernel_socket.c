@@ -89,7 +89,6 @@ Fid_t sys_Accept(Fid_t lsock)
 	rlnode * req_queue_node = rlist_pop_front(&lsocket_cb->socket_struct.listener_s->request_queue);
 	Con_request * request = req_queue_node->request;
 	
-	request->admitted = 1;
 	Fid_t new_peer_fid = sys_Socket(NOPORT);		//Create new peer socket_cb
 	if(new_peer_fid == NOFILE)
 		return NOFILE;
@@ -118,13 +117,41 @@ Fid_t sys_Accept(Fid_t lsock)
 	new_peer_scb->socket_struct.peer_s->reader_pipe = pipe_cb_2;
 	new_peer_scb->socket_struct.peer_s->writer_pipe = pipe_cb_1;
 
+	request->admitted = 1;									//accept the request
 
+	kernel_broadcast(&request->connected_cv);				//wake the new_peer_scb to connect
+	lsocket_cb->refcount--;
+	return new_peer_fid;
 }
 
 
 int sys_Connect(Fid_t sock, port_t port, timeout_t timeout)
 {
-	return -1;
+	FCB * fcb = get_fcb(sock);
+
+	if(fcb == NULL || (port < 0 || port >= MAX_PORT) || PORT_MAP[port] == NULL)	//Illegal port or fid or no scb on port
+		return -1;
+	
+	SCB * lsocket_cb = PORT_MAP[port]; 											//get the listener socket from port map
+
+	if(lsocket_cb->type != SOCKET_LISTENER)
+		return -1;																//scb on port is not listener 
+
+	SCB * socket_cb = fcb->streamobj;											//get the scb from the fcb
+	assert(socket_cb != NULL);
+
+	socket_cb->refcount++;
+	Con_request * request = (Con_request *) xmalloc(sizeof(Con_request));		//allocate space for request
+	request->admitted = 0;														//initialize variable
+	request->peer_SCB = socket_cb;												//add scb as peer
+	request->connected_cv = COND_INIT;											//initialize cv
+	rlist_push_back(&lsocket_cb->socket_struct.listener_s->request_queue, &request->queue_node);	//push the request into the listener queue
+	
+	while(request->admitted != 1)												//wait for the request to be admitted
+		kernel_timedwait(&request->connected_cv, SCHED_PIPE, timeout);
+
+	socket_cb->refcount--;
+	return (request->admitted - 1);
 }
 
 
