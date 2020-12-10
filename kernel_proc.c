@@ -3,7 +3,15 @@
 #include "kernel_cc.h"
 #include "kernel_proc.h"
 #include "kernel_streams.h"
+#include "kernel_info.h"
 
+
+static file_ops procinfo_fops = {
+	.Open = info_dummy_open,
+	.Read = info_read,
+	.Write = info_dummy_write,
+	.Close = info_close
+};
 
 /*
 The process table and related system calls:
@@ -23,7 +31,7 @@ PCB* get_pcb(Pid_t pid){
 }
 
 Pid_t get_pid(PCB* pcb){
-	return pcb==NULL ? NOPROC : pcb-PT;
+	return pcb==NULL ? NOPROC : (unsigned int)(pcb-PT);
 }
 
 /* Initialize a PCB */
@@ -333,6 +341,112 @@ void sys_Exit(int exitval)
 }	
 
 Fid_t sys_OpenInfo(){
-	return NOFILE;
+	Fid_t fid;
+	FCB * fcb;
+
+	if(!FCB_reserve(1, &fid, &fcb)){
+		return NOFILE;
+	}
+
+	procinfo_cb * procinfo = (procinfo_cb *)xmalloc(sizeof(procinfo_cb));
+
+	procinfo->PCB_cursor = 0;
+
+	fcb->streamobj = procinfo;
+	fcb->streamfunc = &procinfo_fops;
+	
+	return fid;
 }
+
+
+int info_read(void* info_cb, char * buffer, unsigned int n){
+	procinfo_cb * infocb = (procinfo_cb *)info_cb;
+	procinfo * proc_info = (procinfo *)xmalloc(sizeof(procinfo));
+
+	/* set both buffers to 0 */
+	memset(proc_info, 0, sizeof(procinfo));
+	memset(buffer, 0, sizeof(procinfo));
+
+	/* check the PID index */
+	if(infocb->PCB_cursor == MAX_PROC){
+		return 0;
+	}
+
+	PCB * pcb = &PT[infocb->PCB_cursor];
+
+	/* skin any FREE PIDs */
+	while(pcb->pstate == FREE){
+		infocb->PCB_cursor++;
+		if(infocb->PCB_cursor == MAX_PROC){
+			return 0;
+		}
+		pcb = &PT[infocb->PCB_cursor];
+	}
+
+	/* are we the walking dead? */
+	/* anything after season 4 was garbage anw */
+	if(pcb->pstate == ALIVE){
+		proc_info->alive = 1;
+	}
+	else if(pcb->pstate == ZOMBIE){
+		proc_info->alive = 0;
+	}
+
+	/* copy information from the PCB */
+	proc_info->pid = get_pid(pcb);
+	proc_info->ppid = get_pid(pcb->parent);
+
+	proc_info->argl = pcb->argl;
+	proc_info->main_task = pcb->main_task;
+	proc_info->thread_count = pcb->thread_count;
+
+	// if(proc_info->alive >= 0){
+	// 	fprintf(stderr, "%5d %5d %6s %8lu\n",
+	// 				proc_info->pid,
+	// 				proc_info->ppid,
+	// 				(proc_info->alive?"ALIVE":"ZOMBIE"),
+	// 				proc_info->thread_count);
+	// }
+
+	/** 
+	 * copy the arguments one char at a time
+	 * finish if the args ptr is NULL
+	 * or if exceed 
+	 * the max arg size
+	 * or the the arg length of the PCB
+	 */ 
+	for(int i=0;i<pcb->argl && i<PROCINFO_MAX_ARGS_SIZE;i++){
+		if(pcb->args == NULL){
+			break;
+		}
+		proc_info->args[i] = ((char *)pcb->args)[i];
+		
+	}
+
+	/* goto next */
+	infocb->PCB_cursor++;
+	/* copy the struct into the buffer */
+	memcpy(buffer, (char*)proc_info, sizeof(procinfo));
+	/* free the struct */
+	free(proc_info);
+
+	return sizeof(proc_info);
+}
+
+
+int info_close(void * info_cb){
+	free((procinfo_cb *)info_cb);
+	return 0;
+}
+
+
+int info_dummy_write(void* info_cb, const char * buffer, unsigned int n){
+	return -1;
+}
+
+
+void * info_dummy_open(unsigned int fd){
+	return NULL;
+}
+
 
