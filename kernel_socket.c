@@ -160,3 +160,16 @@ int sys_ShutDown(Fid_t sock, shutdown_mode how)
 	return -1;
 }
 
+int socket_write(void* scb, const char *buf, unsigned int size){
+	return -1;
+}
+
+int socket_read(void* scb, char *buf, unsigned int size){
+	return -1;
+}
+
+int socket_close(void* scb){
+	return -1;
+}
+
+
