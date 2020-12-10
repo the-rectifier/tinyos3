@@ -2468,7 +2468,80 @@ TEST_SUITE(io_tests,
 };
 
 
+/********************************************
+ * 
+ * 
+ * 
+ * 	Info tests
+ * 
+ * 
+ * 
+ ********************************************/
 
+BOOT_TEST(test_open_info, "Test for opening a new info FD"){
+	ASSERT(OpenInfo() != NOFILE);
+	return 0;
+}
+
+BOOT_TEST(test_info_once, "Test if info_read returns something"){
+	Fid_t info_fd = OpenInfo();
+	ASSERT(info_fd != NOFILE);
+	procinfo info;
+
+	ASSERT(Read(info_fd,(char *)&info, sizeof(info)) == sizeof(procinfo));
+	return 0;
+}
+
+BOOT_TEST(test_pid_info, "Test if the read syscall returns proper info"){
+	/* create a new FD */
+	Fid_t info_fd = OpenInfo();
+	ASSERT(info_fd != NOFILE);
+
+	procinfo info;
+
+	/* read for 2 processes */
+	for(int i=0;i<2;i++){
+		ASSERT(Read(info_fd, (char*) &info, sizeof(info)) > 0);
+	}
+
+	/* init process is should be alive */
+	ASSERT(info.alive == 1);
+	/* no arguments should've be passed */
+	ASSERT(info.argl == 0);
+	/* should have pid of 1 */
+	ASSERT(info.pid == 1);
+	/* parentless */
+	ASSERT(info.ppid == -1);
+	/* 1 thread for init */
+	ASSERT(info.thread_count == 1);
+
+	Program prog=NULL;
+	const char* argv[10];
+	int argc = ParseProcInfo(&info, &prog, 10, argv);
+
+	const char* pname = "-";
+	if(argc>=1)  {
+		pname = argv[0];
+	} else if(argc==-1) {
+		/* Try to give some known names */
+		if(info.pid==1) pname = "init";
+	}
+
+	/* after parsing the name should be init */
+	ASSERT(!strcmp(pname, "init"));
+	/* next read should be 0, no more processes */
+	ASSERT(Read(info_fd, (char*) &info, sizeof(info)) == 0);
+
+	return 0;
+	
+}
+
+TEST_SUITE(info_tests, "Tests for SYS_INFO"){
+	&test_open_info,
+	&test_info_once,
+	&test_pid_info,
+	NULL
+};
 
 /*********************************************
  *
@@ -2476,7 +2549,7 @@ TEST_SUITE(io_tests,
  *
  *  Main program
  *
- *
+ *	
  *
  *********************************************/
 
@@ -2492,6 +2565,7 @@ TEST_SUITE(all_tests,
 	&thread_tests,
 	&pipe_tests,
 	&socket_tests,
+	&info_tests,
 	NULL
 };
 
