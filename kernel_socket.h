@@ -3,26 +3,26 @@
 #include "kernel_pipe.h"
 
 typedef struct {
-    rlnode queue;
+    rlnode request_queue;
     CondVar req_available_cv;
-}listener_socket;
+}Listener_socket;
 
 typedef struct {
     rlnode unbound_socket;
-}unbound_socket;
+}Unbound_socket;
 
 typedef struct {
-    SCB * peer;
+    SCB * peer_scb;
     PIPE_CB * writer_pipe;
     PIPE_CB * reader_pipe;
-}peer_socket;
+}Peer_socket;
 
 typedef struct connection_request{
     int admitted;
-    SCB * peer_SCb;
+    SCB * peer_SCB;
     CondVar connected_cv;
     rlnode queue_node;
-}con_request;
+}Con_request;
 
 
 typedef enum {
@@ -37,9 +37,9 @@ typedef struct socket_control_block{
     socket_type type;
     port_t port;
     union {
-        listener_socket * listener_s;
-        unbound_socket * unbound_s;
-        peer_socket * peer_s;
+        Listener_socket * listener_s;
+        Unbound_socket * unbound_s;
+        Peer_socket * peer_s;
     }socket_struct;
     
 }SCB;
