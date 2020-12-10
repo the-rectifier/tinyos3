@@ -430,7 +430,7 @@ int info_read(void* info_cb, char * buffer, unsigned int n){
 	/* free the struct */
 	free(proc_info);
 
-	return sizeof(proc_info);
+	return sizeof(procinfo);
 }
 
 
