@@ -198,7 +198,7 @@ int sys_Connect(Fid_t sock, port_t port, timeout_t timeout)
 	kernel_signal(&lscb->props.listener_s->req_available);
 
 	/* wait until timeout */
-	kernel_timedwait(&lscb->props.listener_s->req_available, SCHED_PIPE, timeout);
+	kernel_timedwait(&request_s->connected_cv, SCHED_PIPE, timeout);
 
 	int ret = (request_s->admitted) ? 0 : -1;
 
