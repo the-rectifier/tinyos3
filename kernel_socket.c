@@ -184,6 +184,11 @@ int socket_read(void* scb, char *buf, unsigned int size){
 }
 
 int socket_close(void* scb){
+	SCB * socket_cb = (SCB *) scb;
+	PCB * reader = socket_cb->socket_struct.peer_s->reader_pipe;
+	PCB * writer = socket_cb->socket_struct.peer_s->writer_pipe;
+	if(socket_cb != NULL && pipe_read_close(reader) != -1 && pipe_write_close(writer) != -1)
+		return 0;
 	return -1;
 }
 

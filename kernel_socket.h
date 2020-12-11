@@ -1,4 +1,3 @@
-#include "types.h"
 #include "kernel_streams.h"
 #include "kernel_pipe.h"
 
