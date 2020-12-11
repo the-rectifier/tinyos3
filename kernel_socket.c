@@ -170,19 +170,17 @@ int sys_ShutDown(Fid_t sock, shutdown_mode how)
 int socket_write(void* scb, const char *buf, unsigned int size){
 	SCB * socket_cb = (SCB*) scb;
 	PCB * writer = socket_cb->socket_struct.peer_s->writer_pipe;
-	int retval = pipe_write(writer, buf, size);
-	if(socket_cb->socket_struct.peer_s->peer_scb == NULL)
-		retval = -1;
-	return retval;
+	if(writer != NULL && socket_cb->type == SOCKET_PEER)
+		return pipe_write(writer, buf, size);
+	return -1;
 }
 
 int socket_read(void* scb, char *buf, unsigned int size){
 	SCB * socket_cb = (SCB*) scb;
 	PCB * reader = socket_cb->socket_struct.peer_s->reader_pipe;
-	int retval = pipe_read(reader, buf, size);
-	if(socket_cb->socket_struct.peer_s->peer_scb == NULL)
-		retval = -1;
-	return retval;
+	if(reader != NULL && socket_cb->type == SOCKET_PEER)
+		return pipe_read(reader, buf, size);
+	return -1;
 }
 
 int socket_close(void* scb){
