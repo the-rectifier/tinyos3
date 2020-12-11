@@ -48,9 +48,8 @@ int sys_Listen(Fid_t sock)
 		return -1;
 
 	SCB * lsocket = fcb->streamobj;
-	assert(lsocket != NULL);
 
-	if(lsocket->type != SOCKET_UNBOUND || lsocket->port == NOPORT || PORT_MAP[lsocket->port] != NULL)			//socket is not bound to a port or port is occupied
+	if(lsocket == NULL || lsocket->type != SOCKET_UNBOUND || lsocket->port == NOPORT || PORT_MAP[lsocket->port] != NULL)			//socket is not bound to a port or port is occupied
 		return -1;
 
 	PORT_MAP[lsocket->port] = lsocket;	//add the listener scb to the PORT_MAP
@@ -73,7 +72,8 @@ Fid_t sys_Accept(Fid_t lsock)
 		return NOFILE;
 
 	SCB * lsocket_cb = fcb->streamobj;		//get the scb from the fcb
-	assert(lsocket_cb != NULL);
+	if(lsocket_cb == NULL)
+		return -1;
 
 	if(lsocket_cb->type != SOCKET_LISTENER || PORT_MAP[lsocket_cb->port] != lsocket_cb)
 		return NOFILE;
@@ -138,17 +138,24 @@ int sys_Connect(Fid_t sock, port_t port, timeout_t timeout)
 		return -1;																//scb on port is not listener 
 
 	SCB * socket_cb = fcb->streamobj;											//get the scb from the fcb
-	assert(socket_cb != NULL);
+	if(socket_cb == NULL)
+		return 0;
 
 	socket_cb->refcount++;
 	Con_request * request = (Con_request *) xmalloc(sizeof(Con_request));		//allocate space for request
 	request->admitted = 0;														//initialize variable
 	request->peer_SCB = socket_cb;												//add scb as peer
 	request->connected_cv = COND_INIT;											//initialize cv
+	rlnode_init(&request->queue_node, request);
 	rlist_push_back(&lsocket_cb->socket_struct.listener_s->request_queue, &request->queue_node);	//push the request into the listener queue
+	kernel_signal(&lsocket_cb->socket_struct.listener_s->req_available_cv)		//wake up 
 	
-	while(request->admitted != 1)												//wait for the request to be admitted
-		kernel_timedwait(&request->connected_cv, SCHED_PIPE, timeout);
+	kernel_timedwait(&request->connected_cv, SCHED_PIPE, timeout);				//wait for the request to be admitted
+	
+	if(request->admitted != 1){
+		rlist_remove(&request->queue_node);
+		free(request);
+	}
 
 	socket_cb->refcount--;
 	return (request->admitted - 1);
@@ -161,11 +168,21 @@ int sys_ShutDown(Fid_t sock, shutdown_mode how)
 }
 
 int socket_write(void* scb, const char *buf, unsigned int size){
-	return -1;
+	SCB * socket_cb = (SCB*) scb;
+	PCB * writer = socket_cb->socket_struct.peer_s->writer_pipe;
+	int retval = pipe_write(writer, buf, size);
+	if(socket_cb->socket_struct.peer_s->peer_scb == NULL)
+		retval = -1;
+	return retval;
 }
 
 int socket_read(void* scb, char *buf, unsigned int size){
-	return -1;
+	SCB * socket_cb = (SCB*) scb;
+	PCB * reader = socket_cb->socket_struct.peer_s->reader_pipe;
+	int retval = pipe_read(reader, buf, size);
+	if(socket_cb->socket_struct.peer_s->peer_scb == NULL)
+		retval = -1;
+	return retval;
 }
 
 int socket_close(void* scb){
