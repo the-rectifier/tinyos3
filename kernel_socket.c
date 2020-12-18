@@ -51,7 +51,7 @@ int sys_Listen(Fid_t sock)
 	 * SCB is NULL 
 	 * SCB is not UNBOUND
 	 */
-	if(scb == NULL || scb->type != SOCKET_UNBOUND || scb->port < 1 || scb->port > MAX_PORT || PORT_MAP[scb->port] != NULL){
+	if(scb == NULL || scb->type != SOCKET_UNBOUND || scb->port < 1 || scb->port >= MAX_PORT || PORT_MAP[scb->port] != NULL){
 		return -1;
 	}
 
@@ -78,7 +78,6 @@ Fid_t sys_Accept(Fid_t lsock)
 		return NOFILE;
 	}
 
-	port_t port = server->port;
 	/* do not disturb */
 	server->refcount++;
 
@@ -90,7 +89,7 @@ Fid_t sys_Accept(Fid_t lsock)
 
 
 	/* check the port if still available */ 
-	if(PORT_MAP[port] == NULL){
+	if(PORT_MAP[server->port] == NULL){
 		SCB_decref(server);
 		return NOFILE;
 	}
@@ -136,13 +135,15 @@ Fid_t sys_Accept(Fid_t lsock)
 	/* connect FCB to socket */
 	fcbs[READ] = serv_client->fcb;
 	fcbs[WRITE] = client->fcb;
-	/* create a pipe without fds, the opposite read/write for client*/
+	/* create a pipe without fds, the opposite read/write for client */
 	PIPE_CB * serv_pipe_read = init_PIPE_CB(fcbs);
 	/* update the connections in the newly edited sockets */
 	serv_client->props.peer_s->read_pipe = serv_pipe_read;
 	client->props.peer_s->write_pipe = serv_pipe_read;
 
-	/** redo the above just with reversed fcb positions
+
+	/** 
+	 * redo the above just with reversed fcb positions
 	 * client reads where server writes
 	 * client writes where server reads
 	 */
