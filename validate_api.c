@@ -2504,7 +2504,7 @@ BOOT_TEST(test_pid_info, "Test if the read syscall returns proper info"){
 		ASSERT(Read(info_fd, (char*) &info, sizeof(info)) > 0);
 	}
 
-	/* init process is should be alive */
+	/* init process should be alive */
 	ASSERT(info.alive == 1);
 	/* no arguments should've be passed */
 	ASSERT(info.argl == 0);

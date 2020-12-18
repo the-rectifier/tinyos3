@@ -330,7 +330,13 @@ typedef struct resource_list_node {
   rlnode_ptr next;	/**< @brief Pointer to next node */
 } rlnode;
 
-void print_hex(unsigned char *, size_t);
+
+/**
+ * Print a buffer of size n in hexdump format:
+ * XX XX XX XX XX XX XX XX	XX XX XX XX XX XX XX XX
+ * XX XX XX XX XX XX XX XX	XX XX XX XX XX XX XX XX
+ */
+void print_hex(unsigned char * buffer, size_t n);
 
 /**
 	@brief Initialize a node as a singleton ring.

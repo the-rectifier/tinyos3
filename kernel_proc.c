@@ -361,7 +361,7 @@ Fid_t sys_OpenInfo(){
 
 int info_read(void* info_cb, char * buffer, unsigned int n){
 	procinfo_cb * infocb = (procinfo_cb *)info_cb;
-	procinfo * proc_info = (procinfo *)xmalloc(sizeof(procinfo));
+	procinfo * proc_info = &infocb->info;
 
 	/* set both buffers to 0 */
 	memset(proc_info, 0, sizeof(procinfo));
@@ -428,7 +428,6 @@ int info_read(void* info_cb, char * buffer, unsigned int n){
 	/* copy the struct into the buffer */
 	memcpy(buffer, (char*)proc_info, sizeof(procinfo));
 	/* free the struct */
-	free(proc_info);
 
 	return sizeof(procinfo);
 }
