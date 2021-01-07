@@ -499,9 +499,10 @@ void yield(enum SCHED_CAUSE cause)
  *
  */
 void boost_low(void){
-	for(int i=0;i<PRIO_LEVELS-1;i++){
-		while(!is_rlist_empty(&SCHED[i])){
-			TCB * tcb = rlist_pop_front(&SCHED[i])->tcb;
+
+	for(int i=PRIO_LEVELS-1;i<0;i--){
+		while(!is_rlist_empty(&SCHED[i-1])){
+			TCB * tcb = rlist_pop_front(&SCHED[i-1])->tcb;
 			if(tcb->prio != PRIO_LEVELS - 1){
 				tcb->prio++;
 			}
