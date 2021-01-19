@@ -1,4 +1,4 @@
-
+ARCHIVED - Moved [Here](https://github.com/the-rectifier/TUC_labs/tree/master/5th_Sem/COMP301_Labs)
 # TinyOS v.3
 
 TinyOS is a very small operating system, built on top of a simple-minded virtual machine, whose purpose is
